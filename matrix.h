@@ -325,6 +325,7 @@ Matrix<U> operator-(const V &lhs, const Matrix<U> &matrix) {
 // * operator Marina
 
 // transpose
+// testing change
 
 // confiuration methods
 template <class T> bool Matrix<T>::Resize(int numRows, int numCols) {
