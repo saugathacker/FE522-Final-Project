@@ -56,14 +56,22 @@ public:
   template <class U> Matrix<T> operator-(const U &scalar) const;
   template <class U, class V>
   friend Matrix<U> operator-(const V &lhs, const Matrix<U> &matrix);
+
   // * multiplication
+  Matrix <T> MatMul(const Matrix<T> &matrix) const;  // matrix x matrix - matrix multiplication
+  Matrix <T> MatVecMul(const Matrix<T> &vector) const; // matrix x vector 
+
+  // operator overloading for matrix multiplications
   Matrix<T> operator*(const Matrix<T> &matrix) const;
   Matrix<T> operator*(const T &scalar) const;
+
+
   template <class U>
   friend Matrix<U> operator*(const U &lhs, const Matrix<U> &matrix);
 
   // util methods
   bool IsSquare();
+  double Determinant();
   // void PrintMatrix();
   template <class U>
   friend std::ostream &operator<<(std::ostream &os, const Matrix<U> &matrix);
@@ -72,6 +80,7 @@ public:
   bool Separate(Matrix<T> &matrix1, Matrix<T> &matrix2, int colNum);
   bool Join(const Matrix<T> &matrix2);
   Matrix<T> FindSubMatrix(int rowNum, int colNum);
+  Matrix<T> getSubmatrces(int row, int col) const;
 
   // Compute matrix inverse.
   bool Inverse();
@@ -252,7 +261,6 @@ template <class T> bool Matrix<T>::operator==(const Matrix<T> &matrix) const {
       return false;
     }
   }
-
   return true;
 }
 
@@ -322,10 +330,66 @@ Matrix<U> operator-(const V &lhs, const Matrix<U> &matrix) {
   return result;
 }
 
-// * operator Marina
+// * multiplication
 
-// transpose
-// testing change
+// matrix x matrix - matrix multiplication
+template <class T> Matrix <T> Matrix<T>::MatMul(const Matrix<T> &matrix) const{
+  if (nCols!= matrix.getRows()){
+    std::cout << "Matrix Multiplication cannot be performed" << std::endl;
+    return Matrix();
+  }else{
+    Matrix<T> Mulmatrix(nRows, matrix.getColumns());
+    for (int i = 0; i <nRows; i++){
+      for (int j = 0; j <matrix.getColumns(); j++){
+        T sum = 0.0;
+        for (int k = 0; k <nCols; k++ ){
+          sum += getElement(i,k) * matrix.getElement(k, j);
+        }
+      Mulmatrix.setElement(i,j,sum);
+      }
+    }
+    return Mulmatrix;
+  }
+}  
+
+template <class T> Matrix <T> Matrix <T>::MatVecMul(const Matrix<T> &vector) const{ // matrix x vector 
+  if(nCols != vector.getRows() || vector.getColumns()!=1){
+    std::cout << "Matrix x Vector operation cannot be performed!" << std::endl;
+    return Matrix();
+  }else{
+    Matrix<T> matvec(nRows, 1);
+    for (int i = 0; i <nRows; i++){
+      T sum = 0;
+      for (int j=0; j <nCols; j++){
+        sum += getElement(i,j)*vector.getElement(j,0);
+      }
+      matvec.setElement(i,0,sum);
+    }
+    return matvec;
+  }
+} 
+
+// operator overloading for matrix multiplications (mat x mat) or (mat x vec)
+template <class T>
+Matrix<T> Matrix<T>::operator*(const Matrix<T> &matrix) const{
+  if(matrix.getColumns()==1){              // matrix x vector case
+    return MatVecMul(matrix);
+  }else{                                   // matrix multiplication case
+    return MatMul(matrix);
+  }
+  
+}
+
+// mutliplication with scalar
+template <class T> Matrix<T> Matrix<T>::operator*(const T &scalar) const{
+  Matrix<T> resultmat(nRows, nCols);
+  for(int i = 0; i< nRows; i++){
+    for(int j = 0; j <nCols; j++){
+      resultmat.setElement(i,j,getElement(i,j)*scalar);
+    }
+  }
+  return resultmat;
+}
 
 // confiuration methods
 template <class T> bool Matrix<T>::Resize(int numRows, int numCols) {
@@ -354,6 +418,64 @@ template <class T> void Matrix<T>::SetToIdentity() {
 
 // util methods
 template <class T> bool Matrix<T>::IsSquare() { return nRows == nCols; }
+
+
+template<class T> 
+Matrix<T> Matrix<T>::Transpose() const{
+  Matrix<T> transposeMatrix(nCols, nRows);
+  for (int i = 0; i <nCols; i ++){
+    for (int j = 0; j < nRows; j++){
+      transposeMatrix.setElement(i, j, getElement(j, i));
+    }
+  }
+  return transposeMatrix;
+}
+
+template <class T>
+Matrix<T> Matrix<T>::getSubmatrces(int row, int col) const{
+  Matrix<T> submatrix(nRows-1, nCols-1);
+  int subrows = 0;
+  int subcols = 0;
+  for (int i = 0; i < nRows; i++ ){
+    if (i==row) continue;    //skip the specific row
+  
+  for (int j = 0; j <nCols; j++){
+    if (j == col) continue;  // skip the specific column
+    submatrix.setElement(subrows,subcols, getElement(i,j));
+    subcols += 1;
+  }
+  subrows += 1;
+  }
+return submatrix;
+}
+
+template <class T> double Matrix<T>::Determinant() {
+  //check if the matrix is square:
+  if (IsSquare()){
+    // one element matrix
+    if (nElements == 1){ 
+      return getElement(0,0);
+
+    }else if (nRows == 2 && nCols == 2) {         // 2 x 2 case
+      double det = getElement(0, 0)*getElement(1, 1) - getElement(1, 0)*getElement(0, 1);
+      return det;   
+    }else{                                        // higher order dimensions
+      double det = 0.0;
+      double multiplier = -1;
+      for (int col = 0; col <nCols; col++){
+        Matrix<T> subMatrix = getSubmatrces(0,col);
+        if (col % 2 == 0){
+          multiplier = 1;
+        }
+        det += multiplier * getElement(0,col) * subMatrix.Determinant();
+      }
+    }
+  }else{
+    std::cout << "Determinant cannot be defined for a non-square Matrix";
+  }
+ }
+
+
 
 template <class U>
 std::ostream &operator<<(std::ostream &os, const Matrix<U> &matrix) {
