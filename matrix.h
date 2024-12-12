@@ -33,6 +33,7 @@ public:
   bool Resize(int numRows, int numCols);
   void SetToIdentity();
   Matrix<T> Concatenate(const Matrix<T> &matrix, bool by_row);
+  double Sum() const;
 
   // getters and setters
   int getRows() const;
@@ -85,9 +86,9 @@ public:
   Matrix<T> FindSubMatrix(int rowNum, int colNum);
   Matrix<T> getSubmatrces(int row, int col) const;
 
-  // Compute matrix inverse.
+  // Compute matrix inverse
   bool Inverse();
-  // Return the transpose.
+  // Return the transpose
   Matrix<T> Transpose() const;
 };
 
@@ -358,6 +359,16 @@ Matrix<T> Matrix<T>::Concatenate(const Matrix<T> &matrix, bool by_row){
       }
   }
 
+template <class T>
+double Matrix<T>::Sum() const{
+  double sum = 0.0;
+  for (int i = 0; i<nRows; i++){
+    for (int j=0; j<nCols; j++){
+      sum += getElement(i,j);
+    }
+  }
+  return sum;
+}
 
 template <class T>
 template <class U>
