@@ -3,7 +3,7 @@
 #include "inputoutput.h"
 #include <memory>
 #include <iostream>
-#include <system_error>
+#include <cmath>
 
 
 // ****************************LINEAR REGRESSION CLASS ***************************************
@@ -27,8 +27,9 @@ private:
   double Rsquared;
   double AdjRsquared;
   double sigma_regression;
-  double Fstat;
+  double F_stat;
   int Nsample;         // sample size
+  double Fstat();
 
 public:
 
@@ -43,14 +44,13 @@ public:
 
   // LR methods
   Matrix<T> fit();
+  Matrix<T> predict(const Matrix<T> &matrix);
+  
+  
   void coefficients() const;
   void ypredicted() const; // In sample predictions
   void summary_statistics() const;
 
-  Matrix<T> predict(const Matrix<T> &matrix);
-  Matrix<T> stat_significance();
-  Matrix<T> combined_hypothesis();
-  Matrix<T> single_hypothesis();
   
   
 
@@ -60,12 +60,12 @@ public:
 // no inputs - create an empty object
 template<class T>
 LinearRegression<T>::LinearRegression()
-: include_bias(false), X(X()), y(y()), b_hat(b_hat()), b_covmat(b_covmat()), yhat(yhat()), residuals(residuals()),tstats(tstats()),fitted_model(false), mse(0),TSS(0),RSS(0),ESS(0),Rsquared(0),AdjRsquared(0), sigma_regression(0), Fstat(0), Nsample(0){}
+: include_bias(false), X(X()), y(y()), b_hat(b_hat()), b_covmat(b_covmat()), yhat(yhat()), residuals(residuals()),tstats(tstats()),fitted_model(false), mse(0),TSS(0),RSS(0),ESS(0),Rsquared(0),AdjRsquared(0), sigma_regression(0), F_stat(0), Nsample(0){}
 
 // take as input an X matrix
 template<class T>
 LinearRegression<T>::LinearRegression(const Matrix<T> &matrix, const Matrix<T> &ymat, bool bias)
-: include_bias(bias), fitted_model(false),mse(0),TSS(0),RSS(0),ESS(0), Rsquared(0), AdjRsquared(0), sigma_regression(0), Fstat(0){
+: include_bias(bias), fitted_model(false),mse(0),TSS(0),RSS(0),ESS(0), Rsquared(0), AdjRsquared(0), sigma_regression(0), F_stat(0){
   X = matrix;
   y = ymat;
   if(X.getRows() != y.getRows()){
@@ -94,7 +94,7 @@ LinearRegression<T>::LinearRegression(const Matrix<T> &matrix, const Matrix<T> &
 template<class T>
 // take as input a file
 LinearRegression<T>::LinearRegression(const InputOutputFile<T> &xfile, const InputOutputFile<T> &yfile, bool bias)
-: include_bias(bias), b_hat(b_hat()), b_covmat(b_covmat()),yhat(yhat()),residuals(residuals()),fitted_model(false), mse(0),TSS(0),RSS(0),ESS(0), Rsquared(0), AdjRsquared(0), sigma_regression(0), Fstat(0){
+: include_bias(bias), b_hat(b_hat()), b_covmat(b_covmat()),yhat(yhat()),residuals(residuals()),fitted_model(false), mse(0),TSS(0),RSS(0),ESS(0), Rsquared(0), AdjRsquared(0), sigma_regression(0), F_stat(0){
   y = yfile.readFile();          // returns Xmatrix
   X = xfile.readFile(); // returns X matrix
   if(X.getRows() != y.getRows()){
@@ -120,6 +120,46 @@ LinearRegression<T>::LinearRegression(const InputOutputFile<T> &xfile, const Inp
 // Destructor
 template <class T> 
 LinearRegression<T>::~LinearRegression() {}
+
+// private methods
+
+template<class T>
+double LinearRegression<T>::Fstat(){
+
+  int J = b_hat.nRows;             
+  if(include_bias==true){J-=1;} // number of restrictions - exclude constant
+  int cols = b_hat.nRows;
+  Matrix<T> Rmat(J,cols);
+  if(include_bias==true){ 
+    for (int i = 0; i<J; i++){
+      for(int j = 1; j<Rmat.nCols; j++){
+        if(j-1 == i){
+          Rmat.setElement(i,j,1);
+        }else{
+          Rmat.setElement(i,j,0);
+        }
+      } 
+    }
+  }else{
+    for(int i = 0; i<J; i++){
+      for(int j = 0; j<Rmat.nCols; j++){
+        if(i==j){
+          Rmat.setElement(i,j,1);
+        }else{
+          Rmat.setElement(i,j,0);
+        }
+      }
+    }
+  }
+
+  // Fstat = ( (R*b -r)' (R CovMat_b R' )^-1  * (R*b -r) )/J - for statistical significance r = zeros vector
+  Matrix<T> M1 = Rmat.MatVecMul(b_hat);
+  Matrix<T> M2 = (Rmat.MatMul(b_covmat)).MatMul(Rmat.Transpose());
+  Matrix<T> Tot_res = ((M1.Transpose()).MatMul(M2.Inverse())).MatMul(M1);
+  double nom = Tot_res.getElement(0,0);
+  return nom/J;
+}
+
 
 // for the first constructor
 template <class T>
@@ -153,7 +193,7 @@ void LinearRegression<T>::setXY(const Matrix<T> &matrix, const Matrix<T> &ymat, 
   Rsquared = 0;
   AdjRsquared = 0;
   sigma_regression = 0;
-  Fstat = 0;
+  F_stat = 0;
 }
 
 template<class T>
@@ -187,7 +227,7 @@ void LinearRegression<T>::setXY(const InputOutputFile<T> &xfile, const InputOutp
     Rsquared = 0;
     AdjRsquared = 0;
     sigma_regression = 0;
-    Fstat = 0;
+    F_stat = 0;
 }
 
 // Fitting regression Model
@@ -218,8 +258,11 @@ Matrix<T> LinearRegression<T>::fit(){
     double SE_b = sqrt(b_covmat.getElement(i,i));
     tstats.setElement(i,0,b/SE_b);
   }
+  F_stat = Fstat();
 
 }
+
+
 
 template<class T>
 void LinearRegression<T>::coefficients() const{
@@ -259,7 +302,7 @@ void LinearRegression<T>::summary_statistics() const{
     predictors -= 1;
     bias_est += 1;
     }
-
+  double tcrit = 1.96;
   std::cout << "----------------------" << std::endl;
   std::cout << "Regression Statistics " << std::endl;
   std::cout << "----------------------" << std::endl;
@@ -276,7 +319,7 @@ void LinearRegression<T>::summary_statistics() const{
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout << "Source " << "degrees of freedom (df) " << "Sum of Squares (SS)" << "Mean Square (MS)" << "Fstat" << "Significance F" << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Regression" << Nsample - predictors << ESS << ESS/predictors  << Fstat << "Significance F" << std::endl;
+  std::cout << "Regression" << Nsample - predictors << ESS << ESS/predictors  << F_stat << "Significance F" << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout << "Residuals" << Nsample - predictors-bias_est << RSS << RSS/predictors  << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
@@ -285,23 +328,31 @@ void LinearRegression<T>::summary_statistics() const{
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout  << "Variable "<< "Coefficient" << "Tstat" << "pvalue"<< "95% CI (LB)"<< "95% CI (UB)" << std::endl;
   if(include_bias==true){
+    double alpha = b_hat.getElement(0,0); 
+    double SE_alpha = sqrt( b_covmat.getElement(0,0) );
+    double LB = alpha-tcrit*SE_alpha;
+    double UB = alpha+tcrit*SE_alpha;
+    double t_stat = tstats.getElement(0,0);
     std::cout  << "Intercept "<< b_hat.getElement(0,0) << tstats.getElement(0,0) << "pvalue"<< "95% CI (LB)"<< "95% CI (UB)" << std::endl;
     for(int i = 1; i<b_hat.nRows ; i++){
-      double LB =0 ;
-      double UB = 0;
+      double estimate = b_hat.getElement(i,0); 
+      double SE_estimate = sqrt( b_covmat.getElement(i,i) );
+      double LB = estimate-tcrit*SE_estimate;
+      double UB = estimate+tcrit*SE_estimate;
       double t_stat = tstats.getElement(i,0);
       std::cout  << "Variable "<< b_hat.getElement(i,0) << t_stat << "pvalue"<< LB << UB << std::endl;
   }
   }else{
     std::cout  << "   -    " << "   -    " << "   -    " << "   -    "<< "   -    "<< "   -    " << std::endl;
     for(int i = 0; i<b_hat.nRows ; i++){
-      double LB =0 ;
-      double UB = 0;
+      double estimate = b_hat.getElement(i,0); 
+      double SE_estimate = sqrt( b_covmat.getElement(i,i) );
+      double LB = estimate-tcrit*SE_estimate;
+      double UB = estimate+tcrit*SE_estimate;
       double t_stat = tstats.getElement(i,0);
       std::cout  << "Variable "<< b_hat.getElement(i,0) << t_stat << "pvalue"<< LB << UB << std::endl;
   }
     
 }
-
 }
 

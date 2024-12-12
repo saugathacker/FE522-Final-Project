@@ -383,6 +383,7 @@ Matrix<T> Matrix<T>::Zeros(int nrows, int ncols){
 }
 
 
+
 template <class T>
 template <class U>
 Matrix<T> Matrix<T>::operator-(const U &scalar) const {
