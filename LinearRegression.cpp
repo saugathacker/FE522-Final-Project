@@ -1,11 +1,7 @@
-#pragma once
-#include <cmath>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <vector>
+#include "LinearRegression.h"
+#include "matrix.h"
 
-template <class T> class Matrix {
+class LinearRegression {
 private:
   int nRows;
   int nCols;
@@ -32,7 +28,6 @@ public:
   // Configuration methods.
   bool Resize(int numRows, int numCols);
   void SetToIdentity();
-  Matrix<T> Concatenate(const Matrix<T> &matrix, bool by_row);
 
   // getters and setters
   int getRows() const;
@@ -310,52 +305,6 @@ Matrix<T> Matrix<T>::operator-(const Matrix<T> &matrix) const {
 
   return result;
 }
-
-template <class T>
-Matrix<T> Matrix<T>::Concatenate(const Matrix<T> &matrix, bool by_row){
-  
-  if (by_row == true){
-    if (nCols != matrix.getColumns()){
-      throw std::invalid_argument("Length mismatch! Number of columns should match for concatenation");
-      }else{
-        Matrix<T> concatenated = Matrix(nRows+matrix.getRows(),nCols);
-        // first matrix elements
-        for (int i = 0; i < nRows; i++){
-          for(int j = 0; j < nCols; j++){
-            concatenated.setElement(i,j, getElement(i,j));
-          }
-        }
-        // second matrix elements
-        for(int k =0; k < matrix.getRows(); k++){
-          for (int l = 0; l < matrix.getColumns(); l++){
-            concatenated.setElement(k+nRows, l, matrix.getElement(k,l));
-          }
-        }
-        return concatenated;
-      }
-    }else{
-      // concatenate by column
-      if (nRows  != matrix.getRows()){
-        throw std::invalid_argument("Length mismatch! Number of row should match for concatenation");
-      }else{
-        Matrix<T> concatenated = Matrix(nRows, nCols + matrix.getColumns());
-        // first matrix elements
-        for (int i = 0; i < nRows; i++){
-          for(int j = 0; j < nCols; j++){
-            concatenated.setElement(i,j, getElement(i,j));
-          }
-        }
-        // second matrix elements
-        for(int k =0; k < matrix.getRows(); k++){
-          for (int l = 0; l < matrix.getColumns(); l++){
-            concatenated.setElement(k, l+nCols, matrix.getElement(k,l));
-          }
-        }
-        return concatenated;
-      }
-      }
-  }
-
 
 template <class T>
 template <class U>
