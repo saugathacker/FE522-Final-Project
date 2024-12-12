@@ -34,6 +34,7 @@ public:
   void SetToIdentity();
   Matrix<T> Concatenate(const Matrix<T> &matrix, bool by_row);
   double Sum() const;
+  Matrix<T> Zeros(int nrows, int ncols);
 
   // getters and setters
   int getRows() const;
@@ -369,6 +370,18 @@ double Matrix<T>::Sum() const{
   }
   return sum;
 }
+
+template<class T>
+Matrix<T> Matrix<T>::Zeros(int nrows, int ncols){
+  Matrix<T> zerosmat(nrows,ncols);
+  for(int i =0; i<nrows; i++){
+    for(int j =0; j < ncols; j++){
+      zerosmat.setElement(i,j,0);
+    }
+  }
+  return zerosmat;
+}
+
 
 template <class T>
 template <class U>
