@@ -61,6 +61,8 @@ public:
   // * multiplication
   Matrix <T> MatMul(const Matrix<T> &matrix) const;  // matrix x matrix - matrix multiplication
   Matrix <T> MatVecMul(const Matrix<T> &vector) const; // matrix x vector 
+  double InnerProduct(const Matrix<T> &vector) const; // vector x vector 
+  
 
   // operator overloading for matrix multiplications
   Matrix<T> operator*(const Matrix<T> &matrix) const;
@@ -415,6 +417,19 @@ template <class T> Matrix <T> Matrix <T>::MatVecMul(const Matrix<T> &vector) con
     return matvec;
   }
 } 
+
+// inner product
+template <class T>
+double Matrix<T>::InnerProduct(const Matrix<T> &vector) const{ // vector x vector
+if( (nCols != vector.nRows || nRows!=1) || vector.nCols != 1){
+  throw std::invalid_argument("Dimension mismatch!");
+}
+double sum = 0;
+for (int j = 0; j<nCols; j++){
+  sum += getElement(0,j)*vector.getElement(j,0);
+}
+return sum;
+}
 
 // operator overloading for matrix multiplications (mat x mat) or (mat x vec)
 template <class T>
