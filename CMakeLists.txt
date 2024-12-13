@@ -15,8 +15,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_library(libmatrix INTERFACE)
-target_include_directories(libmatrix INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(libmatrix INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/matrix)
+add_library(libfilehandler INTERFACE)
+target_include_directories(libfilehandler INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/filehandler)
 add_subdirectory(test)
 
 add_executable(main main.cpp)
-target_link_libraries(main libmatrix)
+target_link_libraries(main libmatrix libfilehandler)
