@@ -68,11 +68,12 @@ public:
 
   // operator overloading for matrix multiplications
   Matrix<T> operator*(const Matrix<T> &matrix) const;
-  Matrix<T> operator*(const T &scalar) const;
-
-
   template <class U>
-  friend Matrix<U> operator*(const U &lhs, const Matrix<U> &matrix);
+  Matrix<T> operator*(const U &scalar) const;
+
+
+  template <class U, class V>
+  friend Matrix<U> operator*(const V &lhs, const Matrix<U> &matrix);
 
   // util methods
   bool IsSquare();
@@ -409,7 +410,7 @@ Matrix<U> operator-(const V &lhs, const Matrix<U> &matrix) {
 // matrix x matrix - matrix multiplication
 template <class T> Matrix <T> Matrix<T>::MatMul(const Matrix<T> &matrix) const{
   if (nCols!= matrix.getRows()){
-    std::cout << "Matrix Multiplication cannot be performed" << std::endl;
+    throw std::invalid_argument("Matrix Multiplication cannot be performed");
     return Matrix();
   }else{
     Matrix<T> Mulmatrix(nRows, matrix.getColumns());
@@ -428,7 +429,7 @@ template <class T> Matrix <T> Matrix<T>::MatMul(const Matrix<T> &matrix) const{
 
 template <class T> Matrix <T> Matrix <T>::MatVecMul(const Matrix<T> &vector) const{ // matrix x vector 
   if(nCols != vector.getRows() || vector.getColumns()!=1){
-    std::cout << "Matrix x Vector operation cannot be performed!" << std::endl;
+    throw std::invalid_argument("Matrix Multiplication cannot be performed");
     return Matrix();
   }else{
     Matrix<T> matvec(nRows, 1);
@@ -446,14 +447,26 @@ template <class T> Matrix <T> Matrix <T>::MatVecMul(const Matrix<T> &vector) con
 // inner product
 template <class T>
 double Matrix<T>::InnerProduct(const Matrix<T> &vector) const{ // vector x vector
-if( (nCols != vector.nRows || nRows!=1) || vector.nCols != 1){
+if((nCols != vector.nRows || nRows != 1) && (nRows != vector.nCols || nCols != 1)){
   throw std::invalid_argument("Dimension mismatch!");
 }
 double sum = 0;
-for (int j = 0; j<nCols; j++){
-  sum += getElement(0,j)*vector.getElement(j,0);
-}
-return sum;
+
+    // Case 1: Current matrix is a row vector
+    if (nRows == 1 && vector.nCols == 1) {
+        for (int j = 0; j < nCols; j++) {
+            sum += getElement(0, j) * vector.getElement(j, 0);
+        }
+    }
+
+    // Case 2: Current matrix is a column vector
+    else if (nCols == 1 && vector.nRows == 1) {
+        for (int i = 0; i < nRows; i++) {
+            sum += getElement(i, 0) * vector.getElement(0, i);
+        }
+    }
+
+    return sum;
 }
 
 // operator overloading for matrix multiplications (mat x mat) or (mat x vec)
@@ -468,7 +481,9 @@ Matrix<T> Matrix<T>::operator*(const Matrix<T> &matrix) const{
 }
 
 // mutliplication with scalar
-template <class T> Matrix<T> Matrix<T>::operator*(const T &scalar) const{
+template <class T> 
+template <class U>
+Matrix<T> Matrix<T>::operator*(const U &scalar) const{
   Matrix<T> resultmat(nRows, nCols);
   for(int i = 0; i< nRows; i++){
     for(int j = 0; j <nCols; j++){
@@ -476,6 +491,11 @@ template <class T> Matrix<T> Matrix<T>::operator*(const T &scalar) const{
     }
   }
   return resultmat;
+}
+
+template <class U, class V>
+Matrix<U> operator*(const V &lhs, const Matrix<U> &matrix){
+  return matrix * lhs;
 }
 
 // confiuration methods
