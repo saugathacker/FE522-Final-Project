@@ -538,22 +538,24 @@ Matrix<T> Matrix<T>::Transpose() const{
   return transposeMatrix;
 }
 
-template <class T>
-Matrix<T> Matrix<T>::getSubmatrces(int row, int col) const{
-  Matrix<T> submatrix(nRows-1, nCols-1);
+template <class T> Matrix<T> Matrix<T>::getSubmatrces(int row, int col) const {
+  Matrix<T> submatrix(nRows - 1, nCols - 1);
   int subrows = 0;
   int subcols = 0;
-  for (int i = 0; i < nRows; i++ ){
-    if (i==row) continue;    //skip the specific row
-  
-  for (int j = 0; j <nCols; j++){
-    if (j == col) continue;  // skip the specific column
-    submatrix.setElement(subrows,subcols, getElement(i,j));
-    subcols += 1;
+  for (int i = 0; i < nRows; i++) {
+    subcols = 0;
+    if (i == row)
+      continue; // skip the specific row
+
+    for (int j = 0; j < nCols; j++) {
+      if (j == col)
+        continue; // skip the specific column
+      submatrix.setElement(subrows, subcols, getElement(i, j));
+      subcols += 1;
+    }
+    subrows += 1;
   }
-  subrows += 1;
-  }
-return submatrix;
+  return submatrix;
 }
 
 template <class T> double Matrix<T>::Determinant() {
@@ -568,17 +570,15 @@ template <class T> double Matrix<T>::Determinant() {
       return det;   
     }else{                                        // higher order dimensions
       double det = 0.0;
-      double multiplier = -1;
       for (int col = 0; col <nCols; col++){
         Matrix<T> subMatrix = getSubmatrces(0,col);
-        if (col % 2 == 0){
-          multiplier = 1;
-        }
+        double multiplier = (col % 2 == 0) ? 1 : -1;
         det += multiplier * getElement(0,col) * subMatrix.Determinant();
       }
-    }
+      return det;
+    } 
   }else{
-    std::cout << "Determinant cannot be defined for a non-square Matrix";
+      throw std::invalid_argument("Determinant cannot be defined for a non-square matrix.");
   }
  }
 

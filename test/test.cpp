@@ -585,3 +585,72 @@ TEST(MatrixMultiplicationTest, Operator_InvalidDimensions) {
 
     EXPECT_THROW(m1 * m2, std::invalid_argument);
 }
+
+TEST(MatrixUtilityTests, Transpose) {
+    int arr[6] = {1, 2, 3, 4, 5, 6}; // 2x3 Matrix
+    int expected[6] = {1, 4, 2, 5, 3, 6}; // 3x2 Matrix
+
+    Matrix<int> original(2, 3, arr);
+    Matrix<int> transpose = original.Transpose();
+
+    // Check dimensions
+    EXPECT_EQ(transpose.getRows(), 3);
+    EXPECT_EQ(transpose.getColumns(), 2);
+
+    // Check values
+    int index = 0;
+    for (int i = 0; i < transpose.getRows(); i++) {
+        for (int j = 0; j < transpose.getColumns(); j++) {
+            EXPECT_EQ(transpose.getElement(i, j), expected[index]);
+            index++;
+        }
+    }
+}
+
+TEST(MatrixUtilityTests, GetSubmatrices) {
+    int arr[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9}; // 3x3 Matrix
+    int expected[4] = {1, 3, 7, 9}; // Submatrix excluding row 1, col 1
+
+    Matrix<int> original(3, 3, arr);
+    Matrix<int> submatrix = original.getSubmatrces(1, 1);
+
+    // Check dimensions
+    EXPECT_EQ(submatrix.getRows(), 2);
+    EXPECT_EQ(submatrix.getColumns(), 2);
+
+    // Check values
+    int index = 0;
+    for (int i = 0; i < submatrix.getRows(); i++) {
+        for (int j = 0; j < submatrix.getColumns(); j++) {
+            EXPECT_EQ(submatrix.getElement(i, j), expected[index]);
+            index++;
+        }
+    }
+}
+
+TEST(MatrixUtilityTests, Determinant_2x2) {
+    int arr[4] = {4, 3, 6, 3}; // 2x2 Matrix
+    double expected = -6; // Determinant: (4*3 - 6*3)
+
+    Matrix<int> original(2, 2, arr);
+    double determinant = original.Determinant();
+
+    EXPECT_NEAR(determinant, expected, 1e-9);
+}
+
+TEST(MatrixUtilityTests, Determinant_3x3) {
+    int arr[9] = {6, 1, 1, 4, -2, 5, 2, 8, 7}; // 3x3 Matrix
+    double expected = -306; // Determinant manually calculated
+
+    Matrix<int> original(3, 3, arr);
+    double determinant = original.Determinant();
+
+    EXPECT_NEAR(determinant, expected, 1e-9);
+}
+
+TEST(MatrixUtilityTests, Determinant_NonSquare) {
+    int arr[6] = {1, 2, 3, 4, 5, 6}; // 2x3 Matrix
+    Matrix<int> nonSquare(2, 3, arr);
+
+    EXPECT_THROW(nonSquare.Determinant(), std::invalid_argument);
+}
