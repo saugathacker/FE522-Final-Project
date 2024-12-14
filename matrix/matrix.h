@@ -92,6 +92,10 @@ public:
   bool Inverse();
   // Return the transpose
   Matrix<T> Transpose() const;
+
+  // print methods
+  void printVec() const;
+  void printMat() const;
 };
 
 template <class T> Matrix<T>::Matrix() {
@@ -806,4 +810,35 @@ bool Matrix<T>::Inverse() {
     nElements = nRows * nCols;
 
     return true;
+}
+
+
+// print methods
+template <class T>
+void Matrix<T>::printVec() const{
+  if(getColumns() != 1){
+    printMat();
+  }else{
+    std::cout << "[" ;
+    for (int i = 0; i < getRows(); i++){
+      std::cout << getElement(i,0) << " ";
+    }
+    std::cout << "]" << std::endl;
+  }
+}
+
+template <class T> 
+void Matrix<T>::printMat()const{
+  if(getColumns()==1){
+    printVec();
+  }else{
+    std::cout << "[";
+    for(int i = 0; i<getRows(); i++){
+      for(int j =0 ; j<getColumns(); j++){
+        std::cout < getElement(i,j);
+      }
+      std::cout << std::endl;
+    }
+    std::cout << "]" << std::endl;
+  }
 }

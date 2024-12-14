@@ -77,15 +77,12 @@ public:
   Matrix<T> predictedInSample(bool print_vals) const; // In sample predictions
 
 
-
-
-
   // Methods for out of sample predictions
-  Matrix<T> train_test_split(const Matrix<T> &matrix);
-  Matrix<T> predict(const Matrix<T> &matrix); // vector of values - out of sample prediction
+  Matrix<T> train_test_split(const Matrix<T> &matrix, double train_pct = 0.8);
+  Matrix<T> predict(const Matrix<T> &matrix, bool print_vals=false); // vector of values - out of sample prediction
   // Single observation predictions
-  double predictOne(const Matrix<T> &vector);
-  Matrix<T> CI_predictOne(const Matrix<T> &vector);
+  double predictOne(const Matrix<T> &vector, bool print_val = false);
+  Matrix<T> CI_predictOne(const Matrix<T> &vector, bool print_vals = false);
   
   
   void summary_statistics() const;
@@ -206,7 +203,7 @@ void LinearRegression<T>::calcCoeffs(){
 
 template <class T>
 void LinearRegression<T>::calcCoeffsStats(){
-  b_covmat = XTXinv*sigma_regression;            // betas covariance matrix
+  b_covmat = XTXinv*pow(sigma_regression,2);            // betas covariance matrix
   for (int i = 0; i<b_hat.nRows; i++){
     double b = b_hat.getElement(i,0);
     double SE_b = sqrt(b_covmat.getElement(i,i));
@@ -231,7 +228,7 @@ template <class T>
 void LinearRegression<T>::calcCoeffsOfDetermination(){
   // R^2 
   Rsquared = ESS/TSS;
-  AdjRsquared = 1 - (RSS/(Nsample-nEstimates)) / (TSS/(Nsample-1));
+  AdjRsquared = 1 - (RSS/(Nsample-parameters)) / (TSS/(Nsample-1));
 }
 
 template<class T>
@@ -271,28 +268,66 @@ template<class T>
 Matrix<T> LinearRegression<T>::coefficients(bool print_vals) const{
   model_fit();
   if(print_vals){
-    std::cout << "[";
-    for(int i = 0; i<b_hat.nRows; i++){
-      std::cout << b_hat.getElement(i,0) << " ";
-    }
-    std::cout << "]" << std::endl; 
+    b_hat.printVec(); 
   }
   return b_hat;
 }
-
 
 template<class T>
 Matrix<T> LinearRegression<T>::predictedInSample(bool print_vals) const{
   model_fit();
   if (print_vals){
-    std::cout << "[";
-    for(int i = 0; i<yhat.nRows; i++){
-      std::cout << yhat.getElement(i,0) << " ";
-      }
-      std::cout << "]" << std::endl;
+    yhat.printVec();
   }
   return yhat;
 }
+
+
+// Methods for out of sample predictions
+template<class T>
+Matrix<T> LinearRegression<T>::predict(const Matrix<T> &matrix, bool print_vals){
+  Matrix<T> predicted = matrix.MatVecMul(b_hat);
+  if (print_vals){
+    predicted.printVec();
+  }
+  return predicted;
+}
+
+template<class T>
+Matrix<T> LinearRegression<T>::train_test_split(const Matrix<T> &matrix, double train_pct){
+  Matrix<T> train_mat, test_mat;
+  
+  return train_mat, test_mat;
+}
+
+
+// Single observation predictions
+template<class T>
+double LinearRegression<T>::predictOne(const Matrix<T> &vector,bool print_vals){
+  Matrix<T> pred = (vector.Transpose()).MatVecMul(b_hat);
+  double prediction = pred.getElement(0,0);
+  return prediction;
+}
+
+template<class T>
+Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_vals){
+  double prediction = predictOne(vector);
+  Matrix<T> mat = vector.Transpose().MatMul(XTXinv).MatVecMul(vector);
+  double prediction_SE = sigma_regression*sqrt(mat.getElement(0,0)+1);
+  double tcrit = 1.96;
+  double LB = prediction-tcrit*prediction_SE;
+  double UB = prediction+tcrit*prediction_SE;
+
+  Matrix<T> CI(2,1);
+  CI.setElement(0,0,LB);
+  CI.setElement(1,0, UB);
+  if (print_vals){
+    CI.printVec();
+  }
+  return CI;
+}
+
+
 
 
 template<class T>
@@ -306,7 +341,7 @@ void LinearRegression<T>::summary_statistics() const{
     predictors -= 1;
     bias_est += 1;
     }
-  double tcrit = 1.96;
+  
   std::cout << "----------------------" << std::endl;
   std::cout << "Regression Statistics " << std::endl;
   std::cout << "----------------------" << std::endl;
