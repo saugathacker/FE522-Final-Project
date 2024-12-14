@@ -1,9 +1,11 @@
 #pragma once
 #include ".\matrix\matrix.h"
-#include "inputoutput.h"
 #include <memory>
 #include <iostream>
 #include <cmath>
+#include <stdexcept>
+#include <utility>
+#include <boost/math/distributions/fisher_f.hpp>
 
 
 // ****************************LINEAR REGRESSION CLASS ***************************************
@@ -79,10 +81,11 @@ public:
   // Model Fit & estimated values
   Matrix<T> fit();
   Matrix<T> coefficients(bool print_vals) const;
-  Matrix<T> predictedInSample(bool print_vals) const; // In sample predictions
+  // train - test split method
+  std::pair<Matrix<T>, Matrix<T>> train_test_split(const Matrix<T> &matrix, double train_pct = 0.8);
 
-  // Methods for out of sample predictions
-  Matrix<T> train_test_split(const Matrix<T> &matrix, double train_pct = 0.8);
+  // methods for predictions
+  Matrix<T> predictedInSample(bool print_vals) const; // In sample predictions
   Matrix<T> predict(const Matrix<T> &matrix, bool print_vals=false); // vector of values - out of sample prediction
   // Single observation predictions
   double predictOne(const Matrix<T> &vector, bool print_val = false);
@@ -91,7 +94,7 @@ public:
   Matrix<T> CI_predictOne(const Matrix<T> &vector, bool print_vals = false, int alpha = 5);
   Matrix<T> CI_estimates(int beta_pos, bool print_vals = false, int alpha =5);
   
-  
+  // Summary Statistics
   void summary_statistics() const;
 
 };
@@ -305,6 +308,18 @@ Matrix<T> LinearRegression<T>::coefficients(bool print_vals) const{
 }
 
 template<class T>
+std::pair<Matrix<T>, Matrix<T>> LinearRegression<T>::train_test_split(const Matrix<T> &matrix, double train_pct){
+  int TotalRows = matrix.getRows();
+  int train_num_obs = static_cast<int>(train_pct*TotalRows);
+  if(train_num_obs == 0 || train_num_obs == TotalRows){
+    throw std::invalid_argument("This splitting does not create valid training and test samples");
+  }
+  std::pair<Matrix<T>, Matrix<T>> train_test = matrix.SplittoMatrices(train_num_obs);
+  return train_test;
+}
+
+// prediction methods
+template<class T>
 Matrix<T> LinearRegression<T>::predictedInSample(bool print_vals) const{
   model_fit();
   if (print_vals){
@@ -313,7 +328,6 @@ Matrix<T> LinearRegression<T>::predictedInSample(bool print_vals) const{
   return yhat;
 }
 
-// Methods for out of sample predictions
 template<class T>
 Matrix<T> LinearRegression<T>::predict(const Matrix<T> &matrix, bool print_vals){
   Matrix<T> predicted = matrix.MatVecMul(b_hat);
@@ -322,14 +336,6 @@ Matrix<T> LinearRegression<T>::predict(const Matrix<T> &matrix, bool print_vals)
   }
   return predicted;
 }
-
-template<class T>
-Matrix<T> LinearRegression<T>::train_test_split(const Matrix<T> &matrix, double train_pct){
-  Matrix<T> train_mat, test_mat;
-  
-  return train_mat, test_mat;
-}
-
 
 // Single observation predictions
 template<class T>
@@ -432,7 +438,6 @@ void LinearRegression<T>::summary_statistics() const{
       double LB = CI.getElement(0,0);
       double UB = CI.getElement(1,0);
       std::cout  << "Variable "<< b_hat.getElement(i,0) << t_stat << ""<< LB << UB << std::endl;
-  }
-    
+  }   
 }
 }
