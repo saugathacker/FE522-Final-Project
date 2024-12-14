@@ -46,6 +46,10 @@ private:
   // statistical measures
   double F_stat;
 
+  // Information Criteria
+  double AIC;
+  double SBIC;
+
   // configuration methods
   void validateData(const Matrix<T>& X, const Matrix<T>& y) const;
   Matrix<T> include_bias(const Matrix<T>& X);
@@ -60,6 +64,7 @@ private:
   void calcCoeffsStats();
   void calcCoeffsOfDetermination();
   double Fstat();
+  double selectCriticalValue(int alpha);
  
 public:
   // constructors
@@ -76,13 +81,15 @@ public:
   Matrix<T> coefficients(bool print_vals) const;
   Matrix<T> predictedInSample(bool print_vals) const; // In sample predictions
 
-
   // Methods for out of sample predictions
   Matrix<T> train_test_split(const Matrix<T> &matrix, double train_pct = 0.8);
   Matrix<T> predict(const Matrix<T> &matrix, bool print_vals=false); // vector of values - out of sample prediction
   // Single observation predictions
   double predictOne(const Matrix<T> &vector, bool print_val = false);
-  Matrix<T> CI_predictOne(const Matrix<T> &vector, bool print_vals = false);
+
+  // Confidence Intervals
+  Matrix<T> CI_predictOne(const Matrix<T> &vector, bool print_vals = false, int alpha = 5);
+  Matrix<T> CI_estimates(int beta_pos, bool print_vals = false, int alpha =5);
   
   
   void summary_statistics() const;
@@ -95,12 +102,12 @@ template<class T>
 LinearRegression<T>::LinearRegression()
 : y(y()),X(X()),XT(XT()),XTXinv(XTXinv()),Nsample(0),parameters(0),nEstimates(0),dfs(0),bias(false),b_hat(b_hat()),b_covmat(b_covmat()),
 fitted_model(false),yhat(yhat()),residuals(residuals()),tstats(tstats()),sigma_regression(0),mse(0), TSS(0), RSS(0), ESS(0), Rsquared(0),
-AdjRsquared(0), F_stat(0){}
+AdjRsquared(0), F_stat(0), AIC(0), SBIC(0){}
 
 // take as input an X matrix
 template<class T>
 LinearRegression<T>::LinearRegression(const Matrix<T> &matrix, const Matrix<T> &ymat, bool bias_): XT(XT()), XTXinv(XTXinv()), bias(bias_),
-fitted_model(false), sigma_regression(0), mse(0), TSS(0), RSS(0), ESS(0), Rsquared(0), AdjRsquared(0), F_stat(0){
+fitted_model(false), sigma_regression(0), mse(0), TSS(0), RSS(0), ESS(0), Rsquared(0), AdjRsquared(0), F_stat(0), AIC(0), SBIC(0){
   X = matrix;
   y = ymat;
   validateData(X, y);
@@ -179,6 +186,8 @@ void LinearRegression<T>::InitializeValues(bool bias_) {
   AdjRsquared = 0;
   sigma_regression = 0;
   F_stat = 0; 
+  AIC = 0;
+  SBIC = 0;
 }
 
 // private methods - helper functions for calculations
@@ -220,8 +229,10 @@ void LinearRegression<T>::UpdateValues(){
   mse = RSS/Nsample;                                                              // mean squared error (MSE)
   double y_mean = y.Sum()/Nsample;                                                // mean Y
   Matrix<T> total_errors = y-y_mean;                                              // Y_real - Y_mean
-  double TSS = (total_errors.Transpose()).InnerProduct(total_errors);             // Total Sum of Squares
-  double ESS = TSS - RSS;                                         // Explained Sum of Squares (regression)
+  TSS = (total_errors.Transpose()).InnerProduct(total_errors);             // Total Sum of Squares
+  ESS = TSS - RSS;                                              // Explained Sum of Squares (regression)
+  AIC = log(RSS/Nsample) + 2*static_cast<double>(nEstimates)/Nsample;
+  SBIC = log(RSS/Nsample) + nEstimates*log(Nsample)/Nsample;
 }
 
 template <class T>
@@ -250,6 +261,26 @@ double LinearRegression<T>::Fstat(){
   Matrix<T> Tot_res = ((M1.Transpose()).MatMul(M2.Inverse())).MatMul(M1);
   double nom = Tot_res.getElement(0,0);
   return nom/J;
+}
+
+template <class T>
+double LinearRegression<T>::selectCriticalValue(int alpha){
+  double t_critical = 0;
+  switch (alpha) {
+    case 1:
+        t_critical = 2.576;
+        break;
+    case 5:
+        t_critical = 1.96;
+        break;
+    case 10:
+       t_critical = 1.645;
+        break;
+    default:
+      std::cout << "Please select a valid value for alpha (1, 5, 10) for the 99%, 95% or 90% Confidence Intervals";
+        break;
+}
+return t_critical;  
 }
 
 // Fitting regression Model
@@ -282,7 +313,6 @@ Matrix<T> LinearRegression<T>::predictedInSample(bool print_vals) const{
   return yhat;
 }
 
-
 // Methods for out of sample predictions
 template<class T>
 Matrix<T> LinearRegression<T>::predict(const Matrix<T> &matrix, bool print_vals){
@@ -309,12 +339,32 @@ double LinearRegression<T>::predictOne(const Matrix<T> &vector,bool print_vals){
   return prediction;
 }
 
+
+// Confidence Intervals
+// CIs for estimates
+template <class T>
+Matrix<T> LinearRegression<T>::CI_estimates(int beta_pos, bool print_vals, int alpha){
+  double SE = sqrt(b_covmat.getElement(beta_pos,beta_pos));
+  double tcrit = selectCriticalValue(alpha);
+  double LB = b_hat.getElement(beta_pos,0)-tcrit*SE;
+  double UB = b_hat.getElement(beta_pos,0)+tcrit*SE;
+
+  Matrix<T> CI(2,1);
+  CI.setElement(0,0,LB);
+  CI.setElement(1,0, UB);
+  if (print_vals){
+    CI.printVec();
+  }
+  return CI;
+}
+
+// CIs for a single observation
 template<class T>
-Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_vals){
+Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_vals, int alpha){
   double prediction = predictOne(vector);
   Matrix<T> mat = vector.Transpose().MatMul(XTXinv).MatVecMul(vector);
   double prediction_SE = sigma_regression*sqrt(mat.getElement(0,0)+1);
-  double tcrit = 1.96;
+  double tcrit = selectCriticalValue(alpha);
   double LB = prediction-tcrit*prediction_SE;
   double UB = prediction+tcrit*prediction_SE;
 
@@ -328,20 +378,9 @@ Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_
 }
 
 
-
-
 template<class T>
 void LinearRegression<T>::summary_statistics() const{
   model_fit();
-
-  // calculations for degress of freedom - necessary to present results
-  int bias_est = 0;
-  int predictors = b_hat.nRows;               
-  if(include_bias == true){                  // if bias is included
-    predictors -= 1;
-    bias_est += 1;
-    }
-  
   std::cout << "----------------------" << std::endl;
   std::cout << "Regression Statistics " << std::endl;
   std::cout << "----------------------" << std::endl;
@@ -349,6 +388,9 @@ void LinearRegression<T>::summary_statistics() const{
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout << "Rsquared: " << Rsquared << std::endl;
   std::cout << "Adjusted Rsquared: " << AdjRsquared << std::endl;
+  std::cout << "Information Criteria " << AdjRsquared << std::endl;
+  std::cout << "AIC: " << AIC << std::endl;
+  std::cout << "SBIC: " << SBIC << std::endl;
   std::cout << "Standard Error of Regression: " << sigma_regression << std::endl;
   std::cout << "Number of Observations: " << Nsample << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
@@ -358,40 +400,39 @@ void LinearRegression<T>::summary_statistics() const{
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout << "Source " << "degrees of freedom (df) " << "Sum of Squares (SS)" << "Mean Square (MS)" << "Fstat" << "Significance F" << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Regression" << Nsample - predictors << ESS << ESS/predictors  << F_stat << "Significance F" << std::endl;
+  std::cout << "Regression" << parameters << ESS << ESS/parameters  << F_stat << "Significance F" << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Residuals" << Nsample - predictors-bias_est << RSS << RSS/(Nsample - predictors-bias_est )  << std::endl;
+  std::cout << "Residuals" << dfs << RSS << RSS/dfs  << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
-  std::cout << "Total" << Nsample - bias_est << TSS << TSS/(Nsample - bias_est ) << std::endl;
+  std::cout << "Total" << Nsample - 1 << TSS << TSS/(Nsample - 1) << std::endl;
+
+  int alpha = 5;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout << "------------------------------------------------------------------------------" << std::endl;
   std::cout  << "Variable "<< "Coefficient" << "Tstat" << "pvalue"<< "95% CI (LB)"<< "95% CI (UB)" << std::endl;
-  if(include_bias==true){
-    double alpha = b_hat.getElement(0,0); 
-    double SE_alpha = sqrt( b_covmat.getElement(0,0) );
-    double LB = alpha-tcrit*SE_alpha;
-    double UB = alpha+tcrit*SE_alpha;
-    double t_stat = tstats.getElement(0,0);
-    std::cout  << "Intercept "<< b_hat.getElement(0,0) << tstats.getElement(0,0) << "pvalue"<< "95% CI (LB)"<< "95% CI (UB)" << std::endl;
+  if(bias==true){
+    double alpha = b_hat.getElement(0,0);   // coefficient    
+    double t_stat = tstats.getElement(0,0); // Tstat
+    Matrix<T> CI = CI_estimates(0, false, 5);
+    std::cout  << "Intercept "<< b_hat.getElement(0,0) << tstats.getElement(0,0) << "pvalue"<< CI.getElement(0,0)<< CI.getElement(1,0) << std::endl;
     for(int i = 1; i<b_hat.nRows ; i++){
       double estimate = b_hat.getElement(i,0); 
-      double SE_estimate = sqrt( b_covmat.getElement(i,i) );
-      double LB = estimate-tcrit*SE_estimate;
-      double UB = estimate+tcrit*SE_estimate;
       double t_stat = tstats.getElement(i,0);
+      Matrix<T> CI = CI_estimates(i, false, 5);
+      double LB = CI.getElement(0,0);
+      double UB = CI.getElement(1,0);
       std::cout  << "Variable "<< b_hat.getElement(i,0) << t_stat << "pvalue"<< LB << UB << std::endl;
   }
   }else{
     std::cout  << "   -    " << "   -    " << "   -    " << "   -    "<< "   -    "<< "   -    " << std::endl;
     for(int i = 0; i<b_hat.nRows ; i++){
       double estimate = b_hat.getElement(i,0); 
-      double SE_estimate = sqrt( b_covmat.getElement(i,i) );
-      double LB = estimate-tcrit*SE_estimate;
-      double UB = estimate+tcrit*SE_estimate;
       double t_stat = tstats.getElement(i,0);
+      Matrix<T> CI = CI_estimates(i, false, 5);
+      double LB = CI.getElement(0,0);
+      double UB = CI.getElement(1,0);
       std::cout  << "Variable "<< b_hat.getElement(i,0) << t_stat << ""<< LB << UB << std::endl;
   }
     
 }
 }
-pvalue
