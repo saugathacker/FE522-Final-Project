@@ -4,6 +4,7 @@
 #include <memory>
 #include <iostream>
 #include <cmath>
+#include <sstream>
 
 
 // ****************************LINEAR REGRESSION CLASS ***************************************
@@ -50,7 +51,7 @@ public:
   void coefficients() const;
   void ypredicted() const; // In sample predictions
   void summary_statistics() const;
-
+  std::stringstream LinearRegression<T>::summary_statistics() const;
   
   
 
@@ -355,4 +356,77 @@ void LinearRegression<T>::summary_statistics() const{
     
 }
 }
+
+template<class T>
+std::stringstream LinearRegression<T>::summary_statistics() const {
+    if (!fitted_model) {
+        throw std::invalid_argument("No regression model fitted yet.");
+    }
+
+    std::stringstream summary;
+
+    // Degrees of freedom calculations
+    int bias_est = 0;
+    int predictors = b_hat.getRows();
+    if (include_bias) {
+        predictors -= 1;
+        bias_est += 1;
+    }
+    double tcrit = 1.96;
+
+    // General statistics
+    summary << "----------------------\n";
+    summary << "Regression Statistics\n";
+    summary << "----------------------\n";
+    summary << "Method: Ordinary Least Squares\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "Rsquared: " << Rsquared << "\n";
+    summary << "Adjusted Rsquared: " << AdjRsquared << "\n";
+    summary << "MSE: " << mse << "\n";
+    summary << "Standard Error of Regression: " << sigma_regression << "\n";
+    summary << "Number of Observations: " << Nsample << "\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "ANOVA\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "Source\t\tDF\t\tSS\t\tMS\t\tFstat\t\tSignificance F\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "Regression\t" << predictors << "\t\t" << ESS << "\t\t" << ESS / predictors << "\t\t" << F_stat << "\t\t" << "Significance F\n";
+    summary << "Residuals\t" << Nsample - predictors - bias_est << "\t\t" << RSS << "\t\t" << RSS / (Nsample - predictors - bias_est) << "\n";
+    summary << "Total\t\t" << Nsample - bias_est << "\t\t" << TSS << "\t\t" << TSS / (Nsample - bias_est) << "\n";
+    summary << "------------------------------------------------------------------------------\n";
+    summary << "------------------------------------------------------------------------------\n";
+
+    // Coefficients
+    summary << "Variable\tCoefficient\tTstat\t\tP-value\t\t95% CI (LB)\t95% CI (UB)\n";
+    if (include_bias) {
+        double alpha = b_hat.getElement(0, 0);
+        double SE_alpha = sqrt(b_covmat.getElement(0, 0));
+        double LB = alpha - tcrit * SE_alpha;
+        double UB = alpha + tcrit * SE_alpha;
+        double t_stat = tstats.getElement(0, 0);
+        summary << "Intercept\t" << alpha << "\t\t" << t_stat << "\t\t" << "P-value" << "\t\t" << LB << "\t\t" << UB << "\n";
+
+        for (int i = 1; i < b_hat.getRows(); i++) {
+            double estimate = b_hat.getElement(i, 0);
+            double SE_estimate = sqrt(b_covmat.getElement(i, i));
+            double LB = estimate - tcrit * SE_estimate;
+            double UB = estimate + tcrit * SE_estimate;
+            double t_stat = tstats.getElement(i, 0);
+            summary << "Variable_" << i << "\t" << estimate << "\t\t" << t_stat << "\t\t" << "P-value" << "\t\t" << LB << "\t\t" << UB << "\n";
+        }
+    } else {
+        for (int i = 0; i < b_hat.getRows(); i++) {
+            double estimate = b_hat.getElement(i, 0);
+            double SE_estimate = sqrt(b_covmat.getElement(i, i));
+            double LB = estimate - tcrit * SE_estimate;
+            double UB = estimate + tcrit * SE_estimate;
+            double t_stat = tstats.getElement(i, 0);
+            summary << "Variable_" << i << "\t" << estimate << "\t\t" << t_stat << "\t\t" << "P-value" << "\t\t" << LB << "\t\t" << UB << "\n";
+        }
+    }
+
+    return summary;
+}
+
 

@@ -20,7 +20,8 @@ public:
 	std::pair<std::vector<T>,Matrix<T>> readFile(const std::string& firstColumnHeader);
 
 	//method to run a LR model and print out the results in another file
-	void OutputLRResults();
+    // void InputOutputFile::OutputLRResults(const LinearRegression& reg)
+	void outputResultsInFile(const std::stringstream& stream, std::string filename);
 
 
 };
@@ -91,9 +92,15 @@ std::pair<std::vector<T>,Matrix<T>>  InputOutputFile::readFile(const std::string
     // Convert remaining data into a Matrix
     Matrix<T> dataMatrix(rowCount, colCount, matrixData.data());
 
-    return std::make_pair(firstColumn, dataMatrix);
+    return std::make_pair(firstColumn, dataMatrix); //include column names as string vector
 
 }
 
-void InputOutputFile::OutputLRResults() {
+void outputResultsInFile(const std::stringstream& stream, std::string filename){
+    std::ofstream outFile(filename);
+        if (!outFile.is_open()) {
+            throw std::runtime_error("Error: could not open file for writing!");
+        }
+        outFile << stream.str();
+        outFile.close();
 }

@@ -35,6 +35,8 @@ TEST(InputOutputTest, readFile) {
         EXPECT_DOUBLE_EQ(firstColumn[i], expectedFirstColumn[i]);
     }
 
+    std::cout << dataMatrix << std::endl;
+
     // Validate matrix data
     EXPECT_EQ(dataMatrix.getRows(), expectedMatrix.getRows());
     EXPECT_EQ(dataMatrix.getColumns(), expectedMatrix.getColumns());
@@ -45,4 +47,34 @@ TEST(InputOutputTest, readFile) {
     }
 
     std::cout << expectedMatrix << std::endl;
+}
+
+TEST(InputOutputFileTest, writeStreamFile) {
+    // Prepare a sample stringstream
+    std::stringstream testStream;
+    testStream << "This is a test2 string\n";
+    testStream << "Line 2 of the file\n";
+
+    // Specify the filename
+    std::string filename = "test_output.txt";
+
+    // Call the function to write the stream to a file
+    ASSERT_NO_THROW(outputResultsInFile(testStream, filename));
+
+    // Verify the file exists
+    std::ifstream inFile(filename);
+    ASSERT_TRUE(inFile.is_open());
+
+    // Read the file content
+    std::string fileContent;
+    std::stringstream fileStream;
+    fileStream << inFile.rdbuf();
+    fileContent = fileStream.str();
+
+    // Verify the content matches the expected string
+    EXPECT_EQ(fileContent, testStream.str());
+
+    // Clean up the file
+    inFile.close();
+    std::remove(filename.c_str());
 }

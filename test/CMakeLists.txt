@@ -1,4 +1,4 @@
-add_executable(test test.cpp inputOutputTest.cpp)
+add_executable(test matrixTest.cpp inputOutputTest.cpp)
 target_link_libraries(test PRIVATE GTest::gtest GTest::gtest_main libmatrix libfilehandler)
 
 # Add CSV file to the test executable (if needed by inputOutputTest.cpp)

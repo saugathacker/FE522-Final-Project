@@ -1,0 +1,28 @@
+template <class T>
+LinearRegression<T>::LinearRegression(const Matrix<T>& matrix, const Matrix<T>& ymat, bool bias)
+    : include_bias(bias) {
+    setXY(matrix, ymat, bias);
+}
+
+
+template <class T>
+Matrix<T> LinearRegression<T>::fit() {
+    validateData();
+    computeCoefficients();
+    computeResiduals();
+    computeStatistics();
+    fitted_model = true;
+    return b_hat;
+}
+
+
+private helper methods// its easy to read and understand
+
+
+void validateData(const Matrix<T>& X, const Matrix<T>& y) {
+    if (X.getRows() != y.getRows()) {
+        throw std::invalid_argument("Row mismatch between X and y.");
+    }
+}
+
+Matrix<T> Xt = X.Transpose();
