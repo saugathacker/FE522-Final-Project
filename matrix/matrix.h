@@ -785,6 +785,8 @@ bool Matrix<T>::Inverse() {
         throw std::invalid_argument("Matrix must be square to invert.");
     }
 
+    std::cout << "Inverting this matrix: " << *this << std::endl;
+
     // Augment the matrix with the identity matrix
     Matrix<T> identity(nRows, nCols);
     identity.SetToIdentity();
@@ -830,7 +832,7 @@ bool Matrix<T>::Inverse() {
     data = std::move(newData);
     nCols = originalCols;
     nElements = nRows * nCols;
-
+    std::cout << "Inverse Success\n" << *this << std::endl;
     return true;
 }
 
@@ -857,7 +859,7 @@ void Matrix<T>::printMat()const{
     std::cout << "[";
     for(int i = 0; i<getRows(); i++){
       for(int j =0 ; j<getColumns(); j++){
-        std::cout < getElement(i,j);
+        std::cout << getElement(i,j);
       }
       std::cout << std::endl;
     }
