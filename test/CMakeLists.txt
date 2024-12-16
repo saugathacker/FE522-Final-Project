@@ -1,4 +1,4 @@
-add_executable(test matrixTest.cpp inputOutputTest.cpp linearRegressionTest.cpp)
+add_executable(test linearRegressionTest.cpp)
 target_link_libraries(test PRIVATE 
             GTest::gtest GTest::gtest_main 
             libmatrix libfilehandler linearRegression)

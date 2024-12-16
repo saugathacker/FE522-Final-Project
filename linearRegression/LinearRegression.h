@@ -92,7 +92,7 @@ public:
   void initializeRegression(const Matrix<T>& matrix, const Matrix<T>& ymat, bool bias_);
 
   // Model Fit & estimated values
-  Matrix<T> fit();
+ void fit();
   Matrix<T> coefficients(bool print_vals) const;
   // train - test split method
   std::pair<Matrix<T>, Matrix<T>> train_test_split(const Matrix<T> &matrix, double train_pct = 0.8);
@@ -108,11 +108,11 @@ public:
   Matrix<T> CI_estimates(int beta_pos, bool print_vals = false, int alpha =5);
   
   // Summary Statistics
-  void summary_statistics() const;
-  std::stringstream summary_statistics_stream() const;
+  void summary_statistics();
+  std::stringstream summary_statistics_stream();
   
   
-
+  Matrix<T> getXMatrix() const;
 };
 
 // Constructors
@@ -147,12 +147,13 @@ LinearRegression<T>::~LinearRegression() {}
 template<class T>
 void LinearRegression<T>::initializeRegression(const Matrix<T>& matrix, const Matrix<T>& ymat, bool bias_) {
     validateData(matrix, ymat);
-    parameters = X.getColumns();
     X = bias_ ? include_bias(matrix) : matrix;
     y = ymat;
 
+    parameters = matrix.getColumns();
     Nsample = X.getRows();
-    nEstimates = parameters + (bias_ ? 1 : 0);
+    nEstimates = X.getColumns();
+    // debug it can be zero if Nsample and nEstimates be same
     dfs = Nsample - nEstimates;
 
     InitializeMatrices();
@@ -168,7 +169,6 @@ template<class T>
 void LinearRegression<T>::setXY(const Matrix<T>& matrix, const Matrix<T>& ymat, bool bias_) {
     initializeRegression(matrix, ymat, bias_);
 }
-
 // configuration methods
 template <class T>
 void LinearRegression<T>::validateData(const Matrix<T>& X, const Matrix<T>& y) const{
@@ -192,6 +192,7 @@ template <class T>
 void LinearRegression<T>::InitializeMatrices() {
   b_hat.Zeros(nEstimates,1);               // Kx1 vector
   b_covmat.Zeros(nEstimates,nEstimates);   // KxK matrix
+  // debug Zeros is returning the zero matrix instead of making tstats a matrix of zero
   tstats.Zeros(nEstimates, 1);             // Kx1 vector for t-statistics
   beta_pvals.Zeros(nEstimates,1);          // Kx1 vector for p-values of estimates
   yhat.Zeros(Nsample,1);                   // Nx1 vector
@@ -278,26 +279,43 @@ void LinearRegression<T>::calcCoeffsOfDetermination(){
   AdjRsquared = 1 - (RSS/(Nsample-parameters)) / (TSS/(Nsample-1));
 }
 
+// template<class T>
+// double LinearRegression<T>::Fstat(){
+//   int J = parameters;               // Estimates excluding bias if existing
+//   Matrix<T> Rmat;
+//   //  debug there is a settoidentity method in matrix class
+//   Rmat.Zeros(J,J);
+//   for(int i = 0; i<J; i++){
+//     Rmat.setElement(i,i,1);
+//   }
+//   if (bias==true){
+//     Matrix<T> B;
+//     B.Zeros(J, 1);
+//
+//
+//     Rmat = B.Concatenate(Rmat, false);
+//
+//   }
+//   // Fstat = ( (R*b -r)' (R CovMat_b R' )^-1  * (R*b -r) )/J - for statistical significance r = zeros vector
+//   Matrix<T> M1 = Rmat.MatVecMul(b_hat);
+//   //Matrix<T> M2 = (Rmat.MatMul(b_covmat)).MatMul(Rmat.Transpose());
+//   Matrix<T> M2 = Rmat * b_covmat * (Rmat.Transpose());
+//   Matrix<T> M2Inv = M2;
+//   std::cout << M2Inv << std::endl;
+//   M2Inv.Inverse();
+//   Matrix<T> Tot_res = ((M1.Transpose()).MatMul(M2Inv)).MatMul(M1);
+//   double nom = Tot_res.getElement(0,0);
+//   return nom/J;
+// }
+
 template<class T>
-double LinearRegression<T>::Fstat(){
-  int J = parameters;               // Estimates excluding bias if existing
-  Matrix<T> Rmat;
-  Rmat.Zeros(J,nEstimates);
-  for(int i = 0; i<J; i++){
-    Rmat.setElement(i,i,1); 
-  }
-  if (bias==true){
-    Rmat.setElement(0,0,0);
-  }
-  // Fstat = ( (R*b -r)' (R CovMat_b R' )^-1  * (R*b -r) )/J - for statistical significance r = zeros vector
-  Matrix<T> M1 = Rmat.MatVecMul(b_hat);
-  Matrix<T> M2 = (Rmat.MatMul(b_covmat)).MatMul(Rmat.Transpose());
-  Matrix<T> M2Inv = M2;
-  M2Inv.Inverse();
-  Matrix<T> Tot_res = ((M1.Transpose()).MatMul(M2Inv)).MatMul(M1);
-  double nom = Tot_res.getElement(0,0);
-  return nom/J;
+double LinearRegression<T>::Fstat() {
+  int J = parameters;
+  F_stat = (ESS/J)
+          /((RSS)/dfs);
+  return F_stat;
 }
+
 
 template <class T>
 double LinearRegression<T>::Fstat_pval(double F_stat){
@@ -310,13 +328,13 @@ double LinearRegression<T>::selectCriticalValue(int alpha){
   double t_critical = 0;
   switch (alpha) {
     case 1:
-        t_critical = boost::math::quantile(Students_dist, 1-alpha/2);
+        t_critical = boost::math::quantile(Students_dist, 1-alpha/200.0);
         break;
     case 5:
-        t_critical = t_critical = boost::math::quantile(Students_dist, 1-alpha/2);
+        t_critical = boost::math::quantile(Students_dist, 1-alpha/200.0);
         break;
     case 10:
-       t_critical = t_critical = boost::math::quantile(Students_dist, 1-alpha/2);
+       t_critical = boost::math::quantile(Students_dist, 1-alpha/200.0);
         break;
     default:
       std::cout << "Please select a valid value for alpha (1, 5, 10) for the 99%, 95% or 90% Confidence Intervals";
@@ -327,7 +345,7 @@ return t_critical;
 
 // Fitting regression Model
 template <class T>
-Matrix<T> LinearRegression<T>::fit(){
+void LinearRegression<T>::fit(){
   fitted_model = true;
   calcMatrices();     // X transpose - (X'X)^-1
   calcCoeffs();       // (X'X)^-1 * X' * y
@@ -380,9 +398,11 @@ Matrix<T> LinearRegression<T>::predict(const Matrix<T> &matrix, bool print_vals)
 // Single observation predictions
 template<class T>
 double LinearRegression<T>::predictOne(const Matrix<T> &vector,bool print_vals){
-  Matrix<T> pred = (vector.Transpose()).MatVecMul(b_hat);
-  double prediction = pred.getElement(0,0);
-  return prediction;
+  double pred = vector.InnerProduct(b_hat);
+  if (print_vals){
+    std::cout << "predIctOne: " << pred << std::endl;
+  }
+  return pred;
 }
 
 
@@ -408,7 +428,7 @@ Matrix<T> LinearRegression<T>::CI_estimates(int beta_pos, bool print_vals, int a
 template<class T>
 Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_vals, int alpha){
   double prediction = predictOne(vector);
-  Matrix<T> mat = vector.Transpose().MatMul(XTXinv).MatVecMul(vector);
+  Matrix<T> mat = vector.MatMul(XTXinv).MatVecMul(vector.Transpose());
   double prediction_SE = sigma_regression*sqrt(mat.getElement(0,0)+1);
   double tcrit = selectCriticalValue(alpha);
   double LB = prediction-tcrit*prediction_SE;
@@ -425,7 +445,7 @@ Matrix<T> LinearRegression<T>::CI_predictOne(const Matrix<T> &vector,bool print_
 
 
 template<class T>
-void LinearRegression<T>::summary_statistics() const{
+void LinearRegression<T>::summary_statistics(){
   model_fit();
   std::cout << "----------------------" << std::endl;
   std::cout << "Regression Statistics " << std::endl;
@@ -480,7 +500,7 @@ void LinearRegression<T>::summary_statistics() const{
 }
 
 template<class T>
-std::stringstream LinearRegression<T>::summary_statistics_stream() const {
+std::stringstream LinearRegression<T>::summary_statistics_stream() {
     model_fit();
 
     std::stringstream summary;
@@ -536,6 +556,11 @@ std::stringstream LinearRegression<T>::summary_statistics_stream() const {
     }
 
     return summary;
+}
+
+template <class T>
+Matrix<T> LinearRegression<T>::getXMatrix() const {
+  return X;
 }
 
 

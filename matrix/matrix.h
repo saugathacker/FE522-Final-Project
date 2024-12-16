@@ -382,13 +382,14 @@ double Matrix<T>::Sum() const{
 
 template<class T>
 Matrix<T> Matrix<T>::Zeros(int nrows, int ncols){
-  Matrix<T> zerosmat(nrows,ncols);
+  this->Resize(nrows, ncols);
   for(int i =0; i<nrows; i++){
     for(int j =0; j < ncols; j++){
-      zerosmat.setElement(i,j,0);
+      this->setElement(i,j,0);
+
     }
   }
-  return zerosmat;
+  return *this;
 }
 
 template <class T>
@@ -785,8 +786,6 @@ bool Matrix<T>::Inverse() {
         throw std::invalid_argument("Matrix must be square to invert.");
     }
 
-    std::cout << "Inverting this matrix: " << *this << std::endl;
-
     // Augment the matrix with the identity matrix
     Matrix<T> identity(nRows, nCols);
     identity.SetToIdentity();
@@ -832,7 +831,6 @@ bool Matrix<T>::Inverse() {
     data = std::move(newData);
     nCols = originalCols;
     nElements = nRows * nCols;
-    std::cout << "Inverse Success\n" << *this << std::endl;
     return true;
 }
 

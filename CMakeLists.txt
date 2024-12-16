@@ -24,3 +24,10 @@ add_subdirectory(test)
 
 add_executable(main main.cpp)
 target_link_libraries(main libmatrix libfilehandler linearRegression)
+
+# Add custom command to copy the data directory to the build directory
+add_custom_command(
+        TARGET main POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/data ${CMAKE_BINARY_DIR}/data
+)

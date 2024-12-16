@@ -35,7 +35,6 @@ TEST(InputOutputTest, readFile) {
         EXPECT_DOUBLE_EQ(firstColumn[i], expectedFirstColumn[i]);
     }
 
-    std::cout << dataMatrix << std::endl;
 
     // Validate matrix data
     EXPECT_EQ(dataMatrix.getRows(), expectedMatrix.getRows());
@@ -45,8 +44,6 @@ TEST(InputOutputTest, readFile) {
             EXPECT_DOUBLE_EQ(dataMatrix.getElement(i, j), expectedMatrix.getElement(i,j));
         }
     }
-
-    std::cout << expectedMatrix << std::endl;
 }
 
 TEST(InputOutputFileTest, writeStreamFile) {
