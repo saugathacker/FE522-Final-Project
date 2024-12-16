@@ -9,19 +9,25 @@
 
 template <class T> class Matrix {
 private:
-  int nRows;
-  int nCols;
-  int nElements;
-  std::unique_ptr<T[]> data;
+  int nRows; // Number of rows
+  int nCols; // Number of columns
+  int nElements; // Total number of elements
+  std::unique_ptr<T[]> data; // Smart pointer for matrix data
 
   int getIndex(int row, int column) const;
+  // Check if two values are close enough
   bool CloseEnough(T f1, T f2) const;
+  // Swap two rows in the matrix
   void SwapRow(int i, int j);
+  // Add multiple of one row to another
   void MultAdd(int i, int j, T multFactor);
+  // Multiply a row by a factor
   void MultRow(int i, T multFactor);
+  // Find the row with the maximum element in a column starting from a specific row
   int FindRowWithMaxElement(int colNumber, int startingRow);
 
 public:
+  // Constructors
   Matrix();
   Matrix(int rows, int columns);
   Matrix(int rows, int columns, T *elements);
@@ -29,15 +35,17 @@ public:
   Matrix(const Matrix<T> &matrix);
   Matrix(int nRows, int nCols, const std::vector<T> &inputData);
 
+  // Destructor
   ~Matrix();
 
   // Configuration methods.
-  bool Resize(int numRows, int numCols);
-  void SetToIdentity();
-  Matrix<T> Concatenate(const Matrix<T> &matrix, bool by_row);
-  double Sum() const;
-  Matrix<T> Zeros(int nrows, int ncols);
+  bool Resize(int numRows, int numCols); // Resize the matrix
+  void SetToIdentity(); // Set matrix to identity
+  Matrix<T> getConcatenate(const Matrix<T> &matrix, bool by_row); // Concatenate two matrices
+  double getSum() const; // Calculate the sum of all elements
+  Matrix<T> Zeros(int nrows, int ncols); // Create a matrix of zeros
   
+  // Split the matrix into two matrices
   std::pair<Matrix<T>, Matrix<T>> SplittoMatrices(int num1) const;
 
   // getters and setters
@@ -74,15 +82,12 @@ public:
   Matrix<T> operator*(const Matrix<T> &matrix) const;
   template <class U>
   Matrix<T> operator*(const U &scalar) const;
-
-
   template <class U, class V>
   friend Matrix<U> operator*(const V &lhs, const Matrix<U> &matrix);
 
   // util methods
   bool IsSquare();
-  double Determinant();
-  // void PrintMatrix();
+  double getDeterminant();
   template <class U>
   friend std::ostream &operator<<(std::ostream &os, const Matrix<U> &matrix);
 
@@ -95,7 +100,7 @@ public:
   // Compute matrix inverse
   bool Inverse();
   // Return the transpose
-  Matrix<T> Transpose() const;
+  Matrix<T> getTranspose() const;
 
   // print methods
   void printVec() const;
@@ -325,7 +330,7 @@ Matrix<T> Matrix<T>::operator-(const Matrix<T> &matrix) const {
 }
 
 template <class T>
-Matrix<T> Matrix<T>::Concatenate(const Matrix<T> &matrix, bool by_row){
+Matrix<T> Matrix<T>::getConcatenate(const Matrix<T> &matrix, bool by_row){
   
   if (by_row == true){
     if (nCols != matrix.getColumns()){
@@ -370,7 +375,7 @@ Matrix<T> Matrix<T>::Concatenate(const Matrix<T> &matrix, bool by_row){
   }
 
 template <class T>
-double Matrix<T>::Sum() const{
+double Matrix<T>::getSum() const{
   double sum = 0.0;
   for (int i = 0; i<nRows; i++){
     for (int j=0; j<nCols; j++){
@@ -555,7 +560,7 @@ template <class T> bool Matrix<T>::IsSquare() { return nRows == nCols; }
 
 
 template<class T> 
-Matrix<T> Matrix<T>::Transpose() const{
+Matrix<T> Matrix<T>::getTranspose() const{
   Matrix<T> transposeMatrix(nCols, nRows);
   for (int i = 0; i <nCols; i ++){
     for (int j = 0; j < nRows; j++){
@@ -585,7 +590,7 @@ template <class T> Matrix<T> Matrix<T>::getSubmatrces(int row, int col) const {
   return submatrix;
 }
 
-template <class T> double Matrix<T>::Determinant() {
+template <class T> double Matrix<T>::getDeterminant() {
   //check if the matrix is square:
   if (IsSquare()){
     // one element matrix
@@ -600,7 +605,7 @@ template <class T> double Matrix<T>::Determinant() {
       for (int col = 0; col <nCols; col++){
         Matrix<T> subMatrix = getSubmatrces(0,col);
         double multiplier = (col % 2 == 0) ? 1 : -1;
-        det += multiplier * getElement(0,col) * subMatrix.Determinant();
+        det += multiplier * getElement(0,col) * subMatrix.getDeterminant();
       }
       return det;
     } 
@@ -610,7 +615,7 @@ template <class T> double Matrix<T>::Determinant() {
  }
 
 
-
+// overloading << for printing matrix
 template <class U>
 std::ostream &operator<<(std::ostream &os, const Matrix<U> &matrix) {
   for (int i = 0; i < matrix.nRows; i++) {
@@ -675,110 +680,6 @@ template <class T> bool Matrix<T>::Join(const Matrix<T> &matrix2) {
 
   return true;
 }
-
-// compute matrix inverse using gauss-jordan elimination
-// template <class T> 
-// bool Matrix<T>::Inverse() {
-//   if (!IsSquare()) {
-//     throw std::invalid_argument("Matrix must be square to invert");
-//   }
-
-//   // form a identity matrix with same dimension
-//   // X = I*X^-1
-//   Matrix<T> identity(nRows, nCols);
-//   identity.SetToIdentity();
-
-//   // join identiy matrix and original matrix
-//   int originalCols = nCols;
-//   Join(identity);
-
-//   // perform gauss-jordan elimination
-//   int cRow, cCol;
-//   int maxCount = 1;
-//   int count = 0;
-//   bool completeFlag = false;
-//   while ((!completeFlag) && (count < maxCount)) {
-//     for (int diagIndex = 0; diagIndex < nRows; diagIndex++) {
-//       cRow = diagIndex;
-//       cCol = diagIndex;
-//       // find the row with max element in the current column
-//       int maxRow = FindRowWithMaxElement(diagIndex, diagIndex);
-
-//       // If this isnt the current row then swap
-//       if (maxRow != cRow) {
-//         SwapRow(cRow, maxRow);
-//       }
-
-//       if (data[getIndex(cRow, cCol)] != 1) {
-//         T multFactor = 1.0 / data[getIndex(cRow, cCol)];
-//         // multiplying the curent row to make it one
-//         MultRow(cRow, multFactor);
-//       }
-
-//       // processing the columns below the current column
-//       // iterating rows
-//       for (int rowIndex = cRow + 1; rowIndex < nRows; rowIndex++) {
-//         if (!CloseEnough(data[getIndex(rowIndex, cCol)], 0.0)) {
-//           int rowOneIndex = cCol;
-
-//           T currentElement = data[getIndex(rowIndex, cCol)];
-
-//           T rowOneElement = data[getIndex(rowOneIndex, cCol)];
-
-//           if (!CloseEnough(rowOneElement, 0.0)) {
-//             // correction factor is required to reduce element at (rowIndex,
-//             // cCol) to zero
-//             T correctionFactor = -(currentElement / rowOneElement);
-
-//             std::cout << "Multiply row " << rowOneIndex << " by "
-//                       << correctionFactor << " and add to row " << rowIndex
-//                       << std::endl;
-
-//             MultAdd(rowIndex, rowOneIndex, correctionFactor);
-//           }
-//         }
-//       }
-
-//       // processing the current row
-//       for (int colIndex = cCol + 1; colIndex < originalCols; colIndex++) {
-//         if (!CloseEnough(data[getIndex(cRow, colIndex)], 0.0)) {
-//           int rowOneIndex = cCol;
-//           T currentElement = data[getIndex(cRow, colIndex)];
-//           T rowOneElement = data[getIndex(rowOneIndex, colIndex)];
-
-//           if (!CloseEnough(rowOneElement, 0.0)) {
-//             T correctionFactor = -(currentElement / rowOneElement);
-
-//             std::cout << "Multiply row " << rowOneIndex << " by "
-//                       << correctionFactor << " and add to row " << cRow
-//                       << std::endl;
-//             MultAdd(cRow, rowOneIndex, correctionFactor);
-//           }
-//         }
-//       }
-//     }
-
-//     // separate the current row into two submatrices
-//     Matrix<T> leftMatrix, rightMatrix;
-//     Separate(leftMatrix, rightMatrix, originalCols);
-
-//     if (leftMatrix == identity) {
-//       completeFlag = true;
-//       nCols = originalCols;
-//       nElements = nRows * nCols;
-//       // create a new temp array to store rightMatrix data
-//       std::unique_ptr<T[]> newData(new T[nRows * nCols]);
-//       for (int i = 0; i < nElements; i++) {
-//         newData[i] = rightMatrix.data[i];
-//       }
-//       data = std::move(newData);
-//     }
-
-//     count++;
-//   }
-
-//   return completeFlag;
-// }
 
 template <class T>
 bool Matrix<T>::Inverse() {
