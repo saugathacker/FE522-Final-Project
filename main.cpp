@@ -34,14 +34,10 @@ int main() {
   lr.predictOne(predictOneX, true);
   lr.CI_predictOne(predictOneX, true);
   cout << "Real value of Y for the single predict: " << yReal << endl;
-  lr.summary_statistics();
-  // std::stringstream testStream;
-  // testStream << "This is a test2 string\n";
-  // testStream << "Line 2 of the file\n";
-  //
-  // // Specify the filename
-  // std::string filename = "test_output.txt";
-  // fileHandler.outputResultsInFile(testStream, filename);
+  stringstream summary = lr.summary_statistics_stream();
+  // Specify the filename
+  string filename = "test_output.txt";
+  outputResultsInFile(summary, filename);
 
   return 0;
 }
