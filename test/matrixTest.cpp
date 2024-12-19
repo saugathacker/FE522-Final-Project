@@ -591,7 +591,7 @@ TEST(MatrixUtilityTests, Transpose) {
     int expected[6] = {1, 4, 2, 5, 3, 6}; // 3x2 Matrix
 
     Matrix<int> original(2, 3, arr);
-    Matrix<int> transpose = original.Transpose();
+    Matrix<int> transpose = original.getTranspose();
 
     // Check dimensions
     EXPECT_EQ(transpose.getRows(), 3);
@@ -633,7 +633,7 @@ TEST(MatrixUtilityTests, Determinant_2x2) {
     double expected = -6; // Determinant: (4*3 - 6*3)
 
     Matrix<int> original(2, 2, arr);
-    double determinant = original.Determinant();
+    double determinant = original.getDeterminant();
 
     EXPECT_NEAR(determinant, expected, 1e-9);
 }
@@ -643,7 +643,7 @@ TEST(MatrixUtilityTests, Determinant_3x3) {
     double expected = -306; // Determinant manually calculated
 
     Matrix<int> original(3, 3, arr);
-    double determinant = original.Determinant();
+    double determinant = original.getDeterminant();
 
     EXPECT_NEAR(determinant, expected, 1e-9);
 }
@@ -652,5 +652,5 @@ TEST(MatrixUtilityTests, Determinant_NonSquare) {
     int arr[6] = {1, 2, 3, 4, 5, 6}; // 2x3 Matrix
     Matrix<int> nonSquare(2, 3, arr);
 
-    EXPECT_THROW(nonSquare.Determinant(), std::invalid_argument);
+    EXPECT_THROW(nonSquare.getDeterminant(), std::invalid_argument);
 }

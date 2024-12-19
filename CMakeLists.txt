@@ -11,6 +11,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(googletest)
 
+# Fetch Boost Math
+FetchContent_Declare(
+  boost_math
+  GIT_REPOSITORY https://github.com/boostorg/math.git
+  GIT_TAG boost-1.83.0  # Use the version you prefer
+)
+FetchContent_MakeAvailable(boost_math)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -19,7 +27,7 @@ target_include_directories(libmatrix INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/matri
 add_library(libfilehandler INTERFACE)
 target_include_directories(libfilehandler INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/filehandler)
 add_library(linearRegression INTERFACE)
-target_include_directories(linearRegression INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/linearRegression ${CMAKE_CURRENT_SOURCE_DIR}/boost-math/include)
+target_include_directories(linearRegression INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/linearRegression ${boost_math_SOURCE_DIR}/include)
 add_subdirectory(test)
 
 add_executable(main main.cpp)
