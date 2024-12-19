@@ -8,24 +8,23 @@
 using namespace std;
 
 int main() { 
-  cout << "Working directory: " << std::filesystem::current_path() << endl;
   // read from file and create X matrix and Y vector
   InputOutputFile fileHandler("./data/model_testdata.csv");
+
+  // readfile takes the name of the first column header as a parameter
   auto [yVector, xMatrix] = fileHandler.readFile<double>("EXSMSFT");
   Matrix<double> yMatrix = Matrix<double>(yVector.size(), 1, yVector);
-  cout << xMatrix.getColumns() << endl;
-  cout << xMatrix.getRows() << endl;
-  cout << xMatrix.getElement(1,0) << endl;
 
-  cout << yMatrix.getColumns() << endl;
-  cout << yMatrix.getRows() << endl;
-  cout << yMatrix.getElement(1,0) << endl;
 
   LinearRegression<double> lr(xMatrix, yMatrix, true);
   xMatrix = lr.getXMatrix();
+
+  // splitting the data set to training and predict
   auto [trainXMatrix, testXMatrix] = lr.train_test_split(xMatrix, 0.9);
   auto [trainYVector, testYVector] = lr.train_test_split(yMatrix, 0.9);
   lr.setXY(trainXMatrix, trainYVector,false);
+
+  // fits the model
   lr.fit();
   lr.predict(testXMatrix, true);
   double arr[] = {1, 0.08,0.67,0.28,-0.15,-1.22};
